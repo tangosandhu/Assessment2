@@ -1,0 +1,53 @@
+---
+title: "Assessment 2"
+author: "Tanveer Singh 4631615"
+date: "6/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+library(skimr)
+
+library(lubridate)
+```
+
+
+
+# *Tanveer*
+## **4631615**
+
+-----
+
+# Assignment 1
+
+----
+
+![Hi This is me](C:\Users\Tanveer Singh\Documents\R class\Practical assignment\Image.jpg)
+# Display the first 10 rows of the dataset using RMarkdown
+```{r}
+Dataset<-read.csv
+
+head(Dataset,10)
+
+```
+
+
+# Use `fct_reorder` and `parse_number` functions to create a factor variable `family_income
+```{r}
+
+
+```
+
+# Generate the general statistics of the dataset using `summary()` and `skim()` function
+```{r}
+Summary()
+skim()
+```
+
+
