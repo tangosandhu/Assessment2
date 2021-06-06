@@ -26,20 +26,25 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(skimr)
 library(scales)
+library(janitor)
+library(lubridate)
+library(datarium)
 theme_set(theme_light())
 ```
 
 
 
 ```{r}
-thanksgiving_meals<-read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-11-20/thanksgiving_meals.csv")
+thanks <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-11-20/thanksgiving_meals.csv')
 ```
+
+
 
 
 #1 
 #Display the first 10 numbers
 ```{r}
-thanksgiving_meals%>%head(10)
+thanks %>% head(10)
 ```
 #1 Answer- Displaying the first observations from the dataset using head(10) function.
 
@@ -47,8 +52,10 @@ thanksgiving_meals%>%head(10)
 
 #2 Use fct_reorder and parse_number to factor variable family_income.
 ```{r}
-thanksgiving_meals%>%
-  mutate(family_income = fct_reorder(family_income, parse_number(family_income)))
+thanks<-thanks%>% mutate(family_income=
+                   fct_reorder(family_income, parse_number(family_income)))
+levels(thanks$family_income)
+```
 ```
 #2 Answer- 'Parse_number' is a non-numeric character that is before or after the group. Here, family_income is a variable that is used to reorder and parsed to make a factor.'fct_reorder' is used to reorder a factor where it is mapped to a position.
 
@@ -56,8 +63,8 @@ thanksgiving_meals%>%
 
 #3 Generate the statistics using summary and skim functions to display the types of the variables in a dataset.
 ```{r}
-thanksgiving_meals%>%summary()
-thanksgiving_meals%>%skim()
+thanks %>% summary()
+thanks %>% skim()
 ```
 #3 Answer-Summary function is used to produce result Summaries in the dataset.Skim function is an alternative function to summary and additionally also displays all data types of the variables in the dataset thanksgiving_meals.
 
@@ -66,7 +73,8 @@ thanksgiving_meals%>%skim()
 
 #4 To count the people who celecrate thanksgiving.
 ```{r}
-thanksgiving_meals%>%count(celebrate,sort = TRUE)
+thanks$celebrate <- as_factor(thanks$celebrate)
+thanks$celebrate %>% fct_count(sort = TRUE)
 ```
 #4Answer: Count function is used to calculate the unique values of the variables to show the total number of observations under the variables.
 
@@ -74,8 +82,10 @@ thanksgiving_meals%>%count(celebrate,sort = TRUE)
 
 #5 What are categories and stats for each main dish served and the method it is prepared?
 ```{r}
-stats<-thanksgiving_meals%>%
-  count(main_dish,main_prep,sort = TRUE)
+thanks$main_dish <- as_factor(thanks$main_dish)
+thanks$main_dish %>% fct_count(sort = TRUE)
+thanks$main_prep <- as_factor(thanks$main_prep)
+thanks$main_prep %>% fct_count(sort = TRUE)
 ```
 #5 Answer: 'categories' is a new different dataset extracted from thanksgiving_meals to save the maindish served and process used to prepare it.
 
@@ -83,7 +93,15 @@ stats<-thanksgiving_meals%>%
 
 #6 Data viz to plot the maindish served and the method used to prepare it.
 ```{r}
-stats%>%ggplot(aes(n,main_dish,fill=main_prep))+geom_col()+theme(legend.position = "top")
+thanks %>% 
+  filter(!is.na(main_dish), !is.na(main_prep), main_dish!="I don't know", main_prep!="I don't know")%>%
+  ggplot(aes(main_dish, fill = main_prep))+
+  geom_bar(position = 'dodge')+
+   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = NULL,
+       y = "Number of Meals",
+       fill = NULL,
+       title = "Thanksgiving Feast")
 ```
 #6 Answer: ggplot is a function that is used plot various graphs models for a specific values in a dataset.A plot has been marked between main-dish and main-dish preparation.
 
@@ -91,8 +109,12 @@ stats%>%ggplot(aes(n,main_dish,fill=main_prep))+geom_col()+theme(legend.position
 
 #7 Count the people who choose cranberry sauce and gravy.
 ```{r}
-thanksgiving_meals%>%count(gravy,sort = TRUE)
-thanksgiving_meals%>%count(cranberry,sort = TRUE)
+thanks$cranberry <- as_factor(thanks$cranberry)
+thanks$cranberry <- thanks$cranberry %>% fct_collapse('Yes' = c("Canned", "Homemade", "Other (please specify)"), "No"=c("None"))
+thanks$cranberry %>% fct_count(sort = TRUE)
+thanks$gravy <- as_factor(thanks$gravy)
+thanks$gravy %>% fct_count(sort = TRUE)
+
 ```
 #7 Answer: To calculate the number of consumers for gravy and cranberry.
 
@@ -100,9 +122,12 @@ thanksgiving_meals%>%count(cranberry,sort = TRUE)
 
 #8 Distribution of people who celebrate thanksgiving based on their income.
 ```{r}
-family_celebrate<-thanksgiving_meals%>%
-  group_by(family_income)%>%
-  summarise(celebrate = sum(celebrate == "Yes"))%>%ungroup()
+thanks %>%
+  group_by(family_income) %>%
+  summarise(celebrate = sum(celebrate == "Yes"),
+            total = n()) %>%
+  ungroup()
+ 
 ```
 #8 Answer: family_celebrate is a new dataset created from thanksgiving and grouping the people based on their family incomes and summarising them on celebration of thanksgiving and then finally ungrouping them.
 
@@ -110,37 +135,53 @@ family_celebrate<-thanksgiving_meals%>%
 
 #9 Dataviz for people who celebrate thanksgiving based on their income.
 ```{r}
-family_celebrate%>%
-  ggplot(aes(celebrate,family_income))+
-  geom_point()
+thanks %>%
+  group_by(family_income) %>%
+  summarise(celebrate = sum(celebrate == "Yes"),
+            total = n()) %>%
+  filter(!is.na(family_income), family_income!="Prefer not to answer")%>%
+  ggplot(aes(family_income, celebrate/total, group = 1))+
+  geom_line()+
+  scale_y_continuous(labels = scales::percent_format())+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "Family Income",
+       y = "Did Celebrate",
+       title = "Income vs Celebration")
 ```
-#9 Answer: Plotting a geom_point with the criteria of celebration vs. family_income.
+#9 Answer: Plotting a geom_point with the criteria of celebration vs.income.
 
 
 
 #10 The most commonly choosen sides, pies and deserts in a dataset.
 ```{r}
-common<- thanksgiving_meals%>%
+food_served<- thanks%>%
   select(id, starts_with("side"),
          starts_with("pie"),
-         starts_with("dessert")) %>%
-  select(-side15,-pie13,-dessert12)%>%
-  gather(type, value,-id)%>%
+         starts_with("dessert"))%>%
+  select(-side15, -pie13, -dessert12)%>%
+  gather(type, value, -id)%>%
   filter(!is.na(value),
          !value %in% c("None", "Other (please specify)"))%>%
-  mutate(type = str_remove(type, "\\d+"))
-common<-common%>%
-  count(type,value,sort = TRUE)
-```
-#10 Answer: Selecting the most common sides, pies and deserts from the dataset using select function.In the given dataset thanksgiving_meals filter function is used to filter the N/A values and gathering them and adding the variable count to the dataset using mutate function. Counting all the common observations using count function.
+  mutate(type=str_remove(type, "\\d+"))
+food_served%>%
+  count(type, value, sort = TRUE)
+```   
+#10 Answer: Selecting the most common sides, pies and deserts from the dataset using select function.In the given dataset thanks filter function is used to filter the N/A values and gathering them and adding the variable count to the dataset using mutate function. Counting all the common observations using count function.
 
 
 
 #11 Dataviz to provide the common sides, pies and deserts.
 ```{r}
-common%>%
-  ggplot(aes(n,value,fill = type))+
-  geom_col()
+food_served%>%
+  count(type, value, sort = TRUE)%>%
+  mutate(value = fct_reorder(value, n))%>%
+  ggplot(aes(value, n, fill=type))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  facet_wrap(~type, scales = "free_y", ncol =1)+
+  labs(x = NULL,
+       y= "Count", 
+       title = "Food Served with Main")
 ```
 #11 Answer: Presenting geom_col for the common sides,pies and deserts.
 
@@ -149,7 +190,7 @@ common%>%
 
 #12 How do the servings differ by income?
 ```{r}
-servings<-thanksgiving_meals%>%
+servings<-thanks%>%
   select(id, starts_with("side"),
          starts_with("pie"),
          starts_with("dessert"),
@@ -160,19 +201,20 @@ servings<-thanksgiving_meals%>%
          !food %in% c("None", "Other (please specify)"))%>%
   mutate(type = str_remove(type, "\\d+"))
 servings<-servings%>%
-  inner_join(thanksgiving_meals)%>%
+  inner_join(thanks)%>%
   mutate(income = parse_number(family_income))%>%
   group_by(food)%>%
   summarise(family_income)%>%
   arrange(family_income)
 servings<-servings%>%count(food,family_income,sort = TRUE)
 ```
-#12 Answer: Created a new dataset which drew from the main dataset 'thanksgiving_meals' to store the observations of servings differentiated by income.Initially the function innerjoin was used and mutating coloums matching rows based on the common sides, pies and desserts. Grouping them by the food along with summarising by family_income, as which which food will be selected by the which family_income category and then re-arranged to the family_income. Counting the total observations from the dataset servings.
+#12 Answer: Created a new dataset which drew from the main dataset 'thanks' to store the observations of servings differentiated by income.Initially the function innerjoin was used and mutating coloums matching rows based on the common sides, pies and desserts. Grouping them by the food along with summarising by common, as which which food will be selected by the which common category and then re-arranged to the common. Counting the total observations from the dataset servings.
 
 
 
 #13 Present this information on a data viz
 ```{r}
-servings%>%ggplot(aes(family_income,food))+geom_point()
+servings%>%ggplot(aes(common,food))+geom_point()
 ```
 #13 Answer:  Marking a point between family_income and food choosen by the people using ggplot function.
+
